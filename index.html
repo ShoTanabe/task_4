@@ -1,15 +1,177 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
- <meta charset="utf-8">
- <title>クイズアプリ</title>
-</head>
-<body>
-
- <script>
+  <head>
+    <meta charset="utf-8">
+    <title>合格セレクトショップ</title>
+  </head>
+  <body>
 
 
+    <div id="quiz">
+      <p id="quiz_number" style="font-weight:bold; font-size:2em;">ようこそ</p>
+      <ul>
+        <li id="quiz_category"></li>
+        <li id="quiz_difficulty"></li>
+      </ul>
+      <p id="quiz_question" style="border-top:solid 1px #000000; border-bottom:solid 1px #000000; padding: 5px 0 5px 10px;       font-weight: bold;
+      ">
+        以下のボタンをクリック
+      </p>
+    </div>
+    <button type="button" id="start_btn">スタート</button>
+    <ul id="answer_btn_area"></ul>
 
- </script>
-</body>
+    <script type="text/javascript">
+
+    const quizApiUrl = 'https://opentdb.com/api.php?amount=10&type=multiple';
+
+    const numberElement = document.getElementById('quiz_number');
+    const categoryElement = document.getElementById('quiz_category');
+    const difficultyElement = document.getElementById('quiz_difficulty');
+    const questionElement = document.getElementById('quiz_question');
+    const startBtn = document.getElementById('start_btn');
+    const answerBtnArea = document.getElementById('answer_btn_area');
+
+    let clickCounter = 1;
+    let correctAnswerCounter = 0;
+
+    class Quiz {
+      constructor(quizData){
+          this.data = quizData.results;
+      }
+
+      getQuizCategory(){
+        return this.data[clickCounter - 1].category;
+      }
+
+      getQuizDifficulty(){
+        return this.data[clickCounter - 1].difficulty;
+      }
+
+      getQuizQuestion(){
+        return this.data[clickCounter - 1].question;
+      }
+
+      getCorrectQuizAnswer(){
+        return this.data[clickCounter - 1].correct_answer;
+      }
+
+      getIncorrectQuizAnswers(){
+        return this.data[clickCounter - 1].incorrect_answers;
+      }
+
+    };
+
+
+    startBtn.addEventListener('click', () => {
+      startBtn.hidden = true;
+      fetchQuizData();
+    });
+
+    const fetchQuizData = async () => {
+      numberElement.textContent = '取得中';
+      questionElement.textContent = '少々お待ち下さい';
+
+      const response = await fetch(quizApiUrl);
+      const quizData = await response.json();
+      const quizInstance = new Quiz(quizData);
+      displayQuiz(quizInstance);
+     };
+
+
+    const  displayQuiz = (quizInstance) => {
+
+      numberElement.innerHTML = `第${clickCounter}問`;
+      categoryElement.innerHTML = `カテゴリー：${quizInstance.getQuizCategory(clickCounter)}`;
+      difficultyElement.innerHTML = `難易度：${quizInstance.getQuizDifficulty(clickCounter)}`;
+      questionElement.innerHTML = `${quizInstance.getQuizQuestion(clickCounter)}`;
+
+      const answerBtns = [
+        quizInstance.getCorrectQuizAnswer(clickCounter),
+        ...quizInstance.getIncorrectQuizAnswers(clickCounter)
+      ];
+
+      const shuffleAnswerBtns = (array) => {
+        for(let i = array.length - 1; i > 0; i--){
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[j], array[i]] =   [array[i], array[j]];
+        }
+        return array;
+      };
+
+      const shuffledAnswerBtns = shuffleAnswerBtns([...answerBtns]);
+
+      shuffledAnswerBtns.forEach((answer, index) => {
+        const btnElement = document.createElement('button');
+        const liBtnElement = document.createElement('li');
+        btnElement.innerHTML = `${answer}`;
+        liBtnElement.appendChild(btnElement);
+        answerBtnArea.appendChild(liBtnElement);
+
+        clickAnswerBtn(btnElement, answerBtns, quizInstance, liBtnElement);
+
+      });
+        console.log(answerBtns);
+        console.log(shuffledAnswerBtns);
+    };
+
+    const clickAnswerBtn = (btnElement,answerBtns, quizInstance, liBtnElement) => {
+      btnElement.addEventListener('click', () => {
+        clickCounter++;
+        if(liBtnElement.textContent === answerBtns[0]){
+          correctAnswerCounter++;
+        }
+        answerBtnArea.innerHTML = '';
+
+        if(clickCounter <= 10){
+           displayQuiz(quizInstance);
+        }
+        else{
+           finishQuiz();
+        }
+      });
+    };
+
+    const finishQuiz = () => {
+        numberElement.innerHTML = `あなたの正解数は${correctAnswerCounter}です`;
+        categoryElement.innerHTML = ``;
+        difficultyElement.innerHTML = ``;
+        questionElement.innerHTML = `再チャレンジしたい場合は下をクリック`;
+        answerBtnArea.innerHTML = '';
+
+        const reloadBtn = document.createElement('button');
+        reloadBtn.textContent = 'ホームに戻る';
+        answerBtnArea.appendChild(reloadBtn);
+
+        reloadBtn.addEventListener('click', () => {
+          location.reload();
+        });
+    };
+
+
+
+
+    </script>
+
+    <style>
+    *{
+      list-style: none;
+    }
+
+    ul{
+      padding-inline-start: 0;
+    }
+
+    li{
+      margin-left: 10px;
+    }
+
+
+    ul#answer_btn_area li{
+      margin-bottom: 5px;
+    }
+
+    </style>
+
+  </body>
 </html>
